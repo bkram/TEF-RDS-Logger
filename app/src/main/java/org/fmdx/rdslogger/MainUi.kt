@@ -1,5 +1,6 @@
 package org.fmdx.rdslogger
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.imePadding
@@ -105,10 +106,16 @@ fun MainScreen(
                     Icon(imageVector = Icons.Default.Wifi, contentDescription = null)
                 },
                 actions = {
-                    IconButton(onClick = { showHelp = true }) {
+                    IconButton(onClick = {
+                        showHelp = true
+                        showAbout = false
+                    }) {
                         Icon(imageVector = Icons.AutoMirrored.Filled.HelpOutline, contentDescription = "Help")
                     }
-                    IconButton(onClick = { showAbout = true }) {
+                    IconButton(onClick = {
+                        showAbout = true
+                        showHelp = false
+                    }) {
                         Icon(imageVector = Icons.Default.Info, contentDescription = "About")
                     }
                 },
@@ -221,11 +228,13 @@ fun MainScreen(
     }
 
     if (showAbout) {
-        AboutScreen(onBack = { })
+        BackHandler { showAbout = false }
+        AboutScreen(onBack = { showAbout = false })
     }
 
     if (showHelp) {
-        HelpScreen(onBack = { })
+        BackHandler { showHelp = false }
+        HelpScreen(onBack = { showHelp = false })
     }
 }
 
