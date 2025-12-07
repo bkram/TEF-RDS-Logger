@@ -1,0 +1,84 @@
+name: Android CI
+
+on:
+  push:
+    branches:
+      - '**'
+  workflow_dispatch:
+
+jobs:
+  build_debug:
+    if: github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platforms;android-36.1 build-tools;36.1.0 platform-tools'
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+      - name: Capture version info
+        run: |
+          VERSION_NAME=$(./gradlew -q :app:properties | awk -F: '/versionName/ {gsub(/ /, "", $2); print $2; exit}')
+          VERSION_CODE=$(./gradlew -q :app:properties | awk -F: '/versionCode/ {gsub(/ /, "", $2); print $2; exit}')
+          echo "VERSION_NAME=$VERSION_NAME"
+          echo "VERSION_CODE=$VERSION_CODE"
+          echo "VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
+          echo "VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
+      - name: Build debug APK
+        run: ./gradlew :app:assembleDebug
+      - name: Rename debug APK with version
+        run: |
+          mv app/build/outputs/apk/debug/app-debug.apk \
+             app/build/outputs/apk/debug/tef-rds-logger-debug-${VERSION_NAME}-${VERSION_CODE}.apk
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: tef-rds-logger-debug-${{ env.VERSION_NAME }}-${{ env.VERSION_CODE }}
+          path: app/build/outputs/apk/debug/tef-rds-logger-debug-${{ env.VERSION_NAME }}-${{ env.VERSION_CODE }}.apk
+          retention-days: 30
+
+  build_release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platforms;android-36.1 build-tools;36.1.0 platform-tools'
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+      - name: Capture version info
+        run: |
+          VERSION_NAME=$(./gradlew -q :app:properties | awk -F: '/versionName/ {gsub(/ /, "", $2); print $2; exit}')
+          VERSION_CODE=$(./gradlew -q :app:properties | awk -F: '/versionCode/ {gsub(/ /, "", $2); print $2; exit}')
+          echo "VERSION_NAME=$VERSION_NAME"
+          echo "VERSION_CODE=$VERSION_CODE"
+          echo "VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
+          echo "VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
+      - name: Build release APK
+        run: ./gradlew :app:assembleRelease
+      - name: Rename release APK with version
+        run: |
+          mv app/build/outputs/apk/release/app-release.apk \
+             app/build/outputs/apk/release/tef-rds-logger-release-${VERSION_NAME}-${VERSION_CODE}.apk
+      - name: Upload release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: tef-rds-logger-release-${{ env.VERSION_NAME }}-${{ env.VERSION_CODE }}
+          path: app/build/outputs/apk/release/tef-rds-logger-release-${{ env.VERSION_NAME }}-${{ env.VERSION_CODE }}.apk
+          retention-days: 30
